@@ -272,13 +272,13 @@ describe('computeStance', () => {
   it('returns NEUTRAL when 1 short + 1 long (no majority)', () => {
     const result = computeStance(['AVOID_LONGS', 'AVOID_SHORTS']);
     expect(result.stance).toBe('NEUTRAL');
-    expect(result.note).toBe('Trade z-score entries as normal');
+    expect(result.note).toBe('No strong signals today.');
   });
 
   it('returns NEUTRAL for empty signals array', () => {
     const result = computeStance([]);
     expect(result.stance).toBe('NEUTRAL');
-    expect(result.note).toBe('Trade z-score entries as normal');
+    expect(result.note).toBe('No strong signals today.');
   });
 
   it('returns CAUTION for a single CAUTION signal', () => {

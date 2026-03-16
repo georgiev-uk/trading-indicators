@@ -41,7 +41,7 @@ export function computeStance(signals: Signal[]): { stance: string; note: string
   if (shortSignals >= 2) return { stance: 'FAVOUR SHORTS', note: `${shortSignals}/3 signals aligned short` };
   if (longSignals >= 2) return { stance: 'FAVOUR LONGS', note: `${longSignals}/3 signals aligned long` };
   if (cautionSignals >= 1) return { stance: 'CAUTION', note: 'Risk-off signal active — reduce size' };
-  return { stance: 'NEUTRAL', note: 'Trade z-score entries as normal' };
+  return { stance: 'NEUTRAL', note: 'No strong signals today.' };
 }
 
 // --- Stance footer ---
