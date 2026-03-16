@@ -5,6 +5,7 @@ import type { LSRatioResult } from '../scripts/ls-ratio.js';
 import type { MacroCalendarResult } from '../scripts/macro-calendar.js';
 import type { BTCDominanceResult } from '../scripts/btc-dominance.js';
 import type { SolTVLResult } from '../scripts/sol-tvl.js';
+import type { CryptoPanicResult } from '../scripts/cryptopanic.js';
 
 vi.mock('../scripts/fear-greed.js');
 vi.mock('../scripts/funding-rate.js');
@@ -12,6 +13,7 @@ vi.mock('../scripts/ls-ratio.js');
 vi.mock('../scripts/macro-calendar.js');
 vi.mock('../scripts/btc-dominance.js');
 vi.mock('../scripts/sol-tvl.js');
+vi.mock('../scripts/cryptopanic.js');
 
 // Import after mocking
 const { getFearGreed } = await import('../scripts/fear-greed.js');
@@ -20,6 +22,7 @@ const { getLSRatio } = await import('../scripts/ls-ratio.js');
 const { getMacroCalendar } = await import('../scripts/macro-calendar.js');
 const { getBTCDominance } = await import('../scripts/btc-dominance.js');
 const { getSolTVL } = await import('../scripts/sol-tvl.js');
+const { getCryptoPanic } = await import('../scripts/cryptopanic.js');
 const { runMorningBriefing, computeStance } = await import('../scripts/morning-briefing.js');
 
 // --- Helpers to build mock results ---
@@ -97,6 +100,19 @@ function makeSolTVL(signal: SolTVLResult['signal'] = 'NEUTRAL'): SolTVLResult {
   };
 }
 
+function makeCryptoPanic(signal: CryptoPanicResult['signal'] = 'NEUTRAL'): CryptoPanicResult {
+  return {
+    totalPosts: 20,
+    bullishCount: 10,
+    bearishCount: 10,
+    neutralCount: 0,
+    bullishRatio: 0.5,
+    topHeadlines: ['Headline 1', 'Headline 2', 'Headline 3'],
+    signal,
+    summary: '\u{1F4F0} News: 10/20 bullish \u2014 Mixed sentiment',
+  };
+}
+
 function mockAllNeutral(): void {
   vi.mocked(getFearGreed).mockResolvedValue(makeFearGreed('NEUTRAL'));
   vi.mocked(getFundingRate).mockResolvedValue(makeFundingRate('NEUTRAL'));
@@ -104,6 +120,7 @@ function mockAllNeutral(): void {
   vi.mocked(getMacroCalendar).mockResolvedValue(makeMacroCalendar('CLEAR'));
   vi.mocked(getBTCDominance).mockResolvedValue(makeBTCDominance('NEUTRAL'));
   vi.mocked(getSolTVL).mockResolvedValue(makeSolTVL('NEUTRAL'));
+  vi.mocked(getCryptoPanic).mockResolvedValue(makeCryptoPanic('NEUTRAL'));
 }
 
 function mockAllNull(): void {
@@ -113,6 +130,7 @@ function mockAllNull(): void {
   vi.mocked(getMacroCalendar).mockResolvedValue(null as unknown as MacroCalendarResult);
   vi.mocked(getBTCDominance).mockResolvedValue(null);
   vi.mocked(getSolTVL).mockResolvedValue(null);
+  vi.mocked(getCryptoPanic).mockResolvedValue(null);
 }
 
 // --- Tests ---
@@ -200,11 +218,12 @@ describe('runMorningBriefing', () => {
     vi.mocked(getMacroCalendar).mockRejectedValue(new Error('fail'));
     vi.mocked(getBTCDominance).mockRejectedValue(new Error('fail'));
     vi.mocked(getSolTVL).mockRejectedValue(new Error('fail'));
+    vi.mocked(getCryptoPanic).mockRejectedValue(new Error('fail'));
     const msg = await runMorningBriefing();
     expect(msg).toBe('⚠️ Morning briefing failed — all data sources unavailable');
   });
 
-  it('shows sections in correct order: Sentiment, Funding, L/S, Macro, BTC.D, TVL', async () => {
+  it('shows sections in correct order: Sentiment, Funding, L/S, Macro, BTC.D, TVL, News', async () => {
     mockAllNeutral();
     const msg = await runMorningBriefing();
 
@@ -214,12 +233,14 @@ describe('runMorningBriefing', () => {
     const macroIdx = msg.indexOf('Macro');
     const btcdIdx = msg.indexOf('BTC.D');
     const tvlIdx = msg.indexOf('Solana TVL');
+    const newsIdx = msg.indexOf('News:');
 
     expect(sentimentIdx).toBeLessThan(fundingIdx);
     expect(fundingIdx).toBeLessThan(lsIdx);
     expect(lsIdx).toBeLessThan(macroIdx);
     expect(macroIdx).toBeLessThan(btcdIdx);
     expect(btcdIdx).toBeLessThan(tvlIdx);
+    expect(tvlIdx).toBeLessThan(newsIdx);
   });
 });
 
@@ -264,5 +285,15 @@ describe('computeStance', () => {
     const result = computeStance(['CAUTION']);
     expect(result.stance).toBe('CAUTION');
     expect(result.note).toBe('Risk-off signal active — reduce size');
+  });
+
+  it('counts BULLISH as a long signal', () => {
+    const result = computeStance(['BULLISH', 'AVOID_SHORTS']);
+    expect(result.stance).toBe('FAVOUR LONGS');
+  });
+
+  it('counts BEARISH as a short signal', () => {
+    const result = computeStance(['BEARISH', 'AVOID_LONGS']);
+    expect(result.stance).toBe('FAVOUR SHORTS');
   });
 });

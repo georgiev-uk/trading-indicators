@@ -5,6 +5,7 @@ import { getLSRatio } from './ls-ratio.js';
 import { getMacroCalendar } from './macro-calendar.js';
 import { getBTCDominance } from './btc-dominance.js';
 import { getSolTVL } from './sol-tvl.js';
+import { getCryptoPanic } from './cryptopanic.js';
 
 // --- Types ---
 
@@ -18,17 +19,19 @@ export type Signal =
   | 'CAUTION'
   | 'NEUTRAL'
   | 'HEALTHY'
-  | 'CLEAR';
+  | 'CLEAR'
+  | 'BULLISH'
+  | 'BEARISH';
 
 // --- Stance logic ---
 
 export function computeStance(signals: Signal[]): { stance: string; note: string } {
   const shortSignals = signals.filter(
-    (s) => s === 'AVOID_LONGS' || s === 'CROWDED_LONG',
+    (s) => s === 'AVOID_LONGS' || s === 'CROWDED_LONG' || s === 'BEARISH',
   ).length;
 
   const longSignals = signals.filter(
-    (s) => s === 'AVOID_SHORTS' || s === 'CROWDED_SHORT' || s === 'RISK_ON',
+    (s) => s === 'AVOID_SHORTS' || s === 'CROWDED_SHORT' || s === 'RISK_ON' || s === 'BULLISH',
   ).length;
 
   const cautionSignals = signals.filter(
@@ -66,9 +69,10 @@ export async function runMorningBriefing(): Promise<string> {
     getMacroCalendar(),
     getBTCDominance(),
     getSolTVL(),
+    getCryptoPanic(),
   ]);
 
-  const labels = ['Sentiment', 'Funding', 'L/S', 'Macro', 'BTC.D', 'TVL'];
+  const labels = ['Sentiment', 'Funding', 'L/S', 'Macro', 'BTC.D', 'TVL', 'News'];
 
   const signals: Signal[] = [];
   const sections: string[] = [];
